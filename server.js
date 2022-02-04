@@ -63,7 +63,7 @@ const menuPrompt = () => {
         } else if (userResponse.options === "Update employee role") {
             updateEmployee();
         }
-        menuPrompt();
+        // menuPrompt();
     })
 }
 
