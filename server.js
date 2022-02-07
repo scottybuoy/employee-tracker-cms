@@ -29,19 +29,33 @@ const db = mysql.createConnection(
         password: process.env.DB_PASSWORD,
         database: "company_db"
     },
-    console.log("Connected to company_db database")
+    // console.log("Connected to company_db database")
 );
 
+// 
+welcomeEmTrak = () => {
+    console.log("_________    ________________________               __");
+    console.log("|   _____|  |______________    ______|             |  |  ___");
+    console.log("|  |____   _____________   |  |  ______  ________  |  | /  /");
+    console.log("|   ____|  |  __    __   | |  | |   ___|/   _    | |  |/  /_");
+    console.log("|  |_____  |  | |  |  |  | |  | |  |    |  |_|   | |   __   |");
+    console.log("|________| |__| |__|  |__| |__| |__|    |____/|__| |__|  |__|");
+    console.log("");
+}
+welcomeEmTrak();
 
 
 
+
+
+// Main menu
 const menuPrompt = () => {
     inquirer.prompt(
         [{
             type: "list",
             name: "options",
             message: "What would you like to do?",
-            choices: ["View all departments", "View all roles", "View all employees", "Add department", "Add Role", "Add employee", "Update employee role"]
+            choices: ["View all departments", "View all roles", "View all employees", "Add department", "Add Role", "Add employee", "Update employee"]
         }]
     ).then((userResponse) => {
         if (userResponse.options === "View all departments") {
@@ -62,7 +76,7 @@ const menuPrompt = () => {
         } else if (userResponse.options === "Add employee") {
             addEmployee();
            
-        } else if (userResponse.options === "Update employee role") {
+        } else if (userResponse.options === "Update employee") {
             updateEmployee();
             
         }
@@ -109,7 +123,6 @@ const addDepartment = () => {
             console.log(`${userResponse.addDepartment} added to departments`)
             showDepartments();
         })
- 
     })  
 };
 
@@ -126,6 +139,7 @@ const showRoles = () => {
     db.promise().query(sql).then(([rows, fields]) => {
         console.log("\n\nShowing all roles...\n");
         console.table(rows);
+        menuPrompt();
     })
         
 };
@@ -164,15 +178,8 @@ const addRole = () => {
         {
             type: "list",
             name: "department",
-            message: "What department does this role belong to?",
-            choices: ["1", "2", "3", "4"],
-            validate: (choices) => {
-                if (!choices) {
-                    console.log("Please select a department");
-                }
-                return true;
-            }
-            
+            message: "Which department does this role belong to?",
+            choices: [1, 2, 3, 4]
         }
     ]).then((userResponse) => {
         const params = [userResponse.role, userResponse.salary, userResponse.department];
@@ -187,6 +194,67 @@ const addRole = () => {
     })  
 };
 
+// const addRole = () => {
+//     inquirer.prompt([
+//         {
+//             type: "input",
+//             name: "role",
+//             message: "What role would you like to add?",
+//             validate: (addRole) => {
+//                 if (addRole) {
+//                     return true;
+//                 }
+//                 console.log("Please enter a role");
+//                 return false;
+//             }
+//         },
+//         {
+//             type: "input", 
+//             name: "salary",
+//             message: "What is the salary of this role?",
+//             validate: salary => {
+//               if (salary) {
+//                   return true;
+//               } else {
+//                   console.log("Please enter a valid salary");
+//                   return false;
+//               }
+//             }
+//         }
+//     ]).then((userResponse) => {
+//         const params = [userResponse.role, userResponse.salary];
+        
+//         const deptSelect = `SELECT name, id FROM department`;
+
+//         db.promise().query(deptSelect).then((data) => {
+
+//             const dept = data.map(({ name, id }) => ({ name: name }));
+
+//             inquirer.prompt([
+//                 {
+//                     type: "list",
+//                     name: "department",
+//                     message: "Which department does this role belong to?",
+//                     choices: dept
+//                 }
+//             ]).then(userResponse => {
+//                 const dept = userResponse.dept;
+//                 params.push(dept);
+                
+//                 const sql =`INSERT INTO role (title, salary, department_id)
+//                     VALUES (?, ?, ?)`;
+
+//                     db.query(sql, params, (err, res) => {
+//                         if (err) throw (err);
+//                         console.log(`${userResponse.role} added to roles`)
+            
+//                         showRoles();
+
+//                     })
+//             })  
+//         }) 
+//     })  
+// };
 
 //------- Display all employees -------
 
@@ -203,6 +271,7 @@ const showEmployees = () => {
         if (err) throw (err);
         console.log("\n\nShowing all employees...\n");
         console.table(rows);
+        menuPrompt();
     }) 
 };
 
@@ -299,6 +368,7 @@ const addEmployee = () => {
 
 const updateEmployee = () => {
     const sql = `SELECT * FROM employee`;
+    
     db.query(sql, (err, data) => {
         if (err) throw (err);
         const employees = data.map(({ id, first_name, last_name }) => ({ name: first_name + " " + last_name, value: id }));
@@ -310,11 +380,100 @@ const updateEmployee = () => {
                 message: "Which employee would you like to update?",
                 choices: employees
             }
+
         ]).then((userResponse) => {
-            console.log(`You have selected ${userResponse.name} to update`);
+            const employee = userResponse.name;
+            const params = [];
+            params.push(employee);
+
+            const roleSelect = `SELECT * FROM role`;
+
+            db.query(roleSelect, (err, data) => {
+                if (err) throw (err);
+
+                const roles = data.map(({ id, title }) => ({ name: title, value: id }));
+
+                inquirer.prompt([
+                    {
+                        type: "list",
+                        name: "role",
+                        message: "What is the employee's new role?",
+                        choices: roles
+                    }
+                ]).then(userResponse => {
+                    const role = userResponse.role;
+                    params.push(role);
+                    let employee = params[0];
+                    params[1] = employee;
+
+                    const sql = `UPDATE employee SET role_id = ? WHERE id = ?`;
+
+                    db.promise().query(sql, params).then(() => {
+
+                        console.log("Employee successfully updated");
+                        showEmployees();
+
+                    })
+                })
+            })
         })
     })
 };
+
+// const updateEmployee = () => {
+//     const sql = `SELECT * FROM employee`;
+    
+//     db.query(sql, (err, data) => {
+//         if (err) throw (err);
+//         const employees = data.map(({ id, first_name, last_name }) => ({ name: first_name + " " + last_name, value: id }));
+
+//         inquirer.prompt([
+//             {
+//                 type: "list",
+//                 name: "name",
+//                 message: "Which employee would you like to update?",
+//                 choices: employees
+//             }
+
+//         ]).then((userResponse) => {
+//             const employee = userResponse.name;
+//             const params = [];
+//             params.push(employee);
+
+//             const roleSelect = `SELECT * FROM role`;
+
+//             db.promise().query(roleSelect).then(data => {
+
+//                 const roles = data.map(({ id, title }) => ({ name: title, value: id }));
+//                 console.log(roles);
+
+//                 inquirer.prompt([
+//                     {
+//                         type: "list",
+//                         name: "role",
+//                         message: "What is the employee's new role?",
+//                         choices: roles
+//                     }
+//                 ]).then(userResponse => {
+
+//                     const role = userResponse.role;
+//                     params.push(role);
+//                     let employee = params[0];
+//                     params[0] = role;
+//                     params[1] = employee;
+
+//                     const sql = `UPDATE employee SET role_id = ? WHERE id = ?`;
+
+//                     db.query(sql, params, (err, result) => {
+//                         if (err) throw (err);
+//                         console.log("Employee successfully updated!");
+//                         showEmployees();
+//                     })
+//                 })
+//             })
+//         })
+//     })
+// };
 
 
 
@@ -324,6 +483,6 @@ menuPrompt();
 
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    // console.log(`Server running on port ${PORT}`);
 })
 
